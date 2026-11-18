@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environment
+.venv/
+
+# Secrets / local config
+.env
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+
+# ZCode session metadata
+.zcode/
