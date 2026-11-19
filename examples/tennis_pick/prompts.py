@@ -36,10 +36,11 @@ ROBOT
 
 CAMERAS
 - get_top_view: straight down. Image up = world +x (away from base);
-  image right = world -y. The base is at the bottom centre. The table top
-  carries a checker grid of 5 cm squares: count squares from the base to
-  estimate a ball's (x, y) in metres (x = squares up * 0.05, y = -squares
-  right * 0.05).
+  image right = world -y. The base is at the bottom centre. Estimate a
+  ball's (x, y) from its pixel position relative to the base and the box
+  (box centre is known: 0.13, 0.16 m); there is no ruler or grid on the
+  table, so reason about scale from known object sizes (ball radius 0.02 m,
+  box inner 0.12 m).
 - get_side_view: horizontal from the robot's right. Image right = world +x;
   image up = world +z. Use it to confirm heights.
 

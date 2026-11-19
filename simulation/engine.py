@@ -41,7 +41,7 @@ GRIPPER_KP = 300.0
 # Note: shoulder_lift + elbow_flex + wrist_flex = +90 deg makes the gripper
 # point vertically down (all three positive angles pitch the tip downward).
 READY_POSE_DEG = {
-    "shoulder_pan": 90.0,
+    "shoulder_pan": 0.0,
     "shoulder_lift": -40.0,
     "elbow_flex": 35.0,
     "wrist_flex": 95.0,

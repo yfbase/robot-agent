@@ -60,9 +60,9 @@ reader can judge fidelity.
 9. **`<size memory="200M">`** added: the default contact/collision arena is
    too small for this model's mesh broadphase and aborts with
    `mj_stackAlloc: out of memory ... mj_collideTree` on some ball layouts.
-10. **Table top carries a 5 cm checker grid** (perception aid for the model to
-    read world coordinates) and the **start pose retracts the arm to the side
-    (shoulder_pan=90)** so it does not occlude the balls in the top view.
+10. **No perception aids**: the table is plain (an earlier 5 cm checker grid
+    and an occlusion-avoiding retracted start pose were removed so the model
+    solves the task purely from camera images).
 11. **Agent tools are async** so pydantic-ai executes them on the event-loop
     (main) thread: MuJoCo EGL contexts are thread-bound and rendering from
     worker threads segfaults mid-episode.

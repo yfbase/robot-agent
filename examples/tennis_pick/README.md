@@ -23,10 +23,9 @@ balls off a table and drop them into a blue box. The framework in
 * Up to 3 tennis balls (radius 0.02 m, see fidelity notes) spawned at random
   positions in front of the base each episode (`--seed` controls the layout).
 * Two fixed cameras: `top_view` (straight down) and `side_view` (horizontal).
-* Perception aids: the table top carries a 5 cm checker grid so the model can
-  read world coordinates by counting squares, and the start pose retracts the
-  arm to the side (shoulder_pan=90) so it does not occlude the balls in the
-  top view.
+* No perception aids: plain table (no grid/ruler) and a neutral start pose.
+  The model must infer scale and positions purely from the camera images
+  (known object sizes: ball radius 0.02 m, box inner 0.12 m).
 
 ## Agent capabilities (the ONLY tools)
 

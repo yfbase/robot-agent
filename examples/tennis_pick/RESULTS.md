@@ -34,6 +34,7 @@ Progression of prompt / infrastructure improvements. Early runs failed for
 | llm_final | + 200M arena + carried experience | 1/2 | ep2 mid-episode EGL segfault (since fixed by async tools) |
 | llm_stable | + async tools (main-thread render) | 1/3 | no crashes; 2 episodes lost the ball after a missed grasp nudged it away |
 | llm_gentle | + 0.5 N gripper limit + wider FOV | aborted | exploratory; wider FOV shrank the grid and hurt coordinate reading, so FOV reverted to 40 |
+| llm_pure_vision | **perception aids removed** (plain table, neutral start pose) | 1/3 | pure-vision variant per user directive; no grid / no occlusion-avoiding pose |
 
 Aggregate over completed LLM episodes of the final configuration
 (debug1 + run9b + llm_final + llm_stable): **4/8 = 50%**, with zero simulator
@@ -45,8 +46,11 @@ policy remains 100% on all seeds tested.
 1. **Grasp physics** (see `simulation/so101_model/MODIFICATIONS.md`): parallel-slide
    gripper + vertical box finger faces + compliant force-limited close +
    kinematic carry. Scripted baseline 6/6.
-2. **Perception aids**: 5 cm table grid for coordinate reading; start pose
-   retracted to the side so the arm does not occlude balls in the top view.
+2. **Perception aids (later REMOVED)**: an earlier 5 cm table grid and a
+   retracted start pose helped coordinate reading / occlusion. Per user
+   directive these were removed so the model solves the task purely from
+   camera images; see `llm_pure_vision` (1/3) vs aided runs. Scale must now be
+   inferred from known object sizes (ball 0.02 m, box inner 0.12 m).
 3. **Lookup-table prompt**: hover + grasp joint tables vs radius, plus an
    explicit per-ball recipe (release → hover → grasp → lift → box → release →
    verify). Removes joint-space trial-and-error.

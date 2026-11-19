@@ -9,7 +9,7 @@ lives in `examples/tennis_pick/` and imports this package as `simulation`.
 | ---- | ------- |
 | `engine.py` | `TennisPickSim`: scene load, reset/random balls, servo read/write, grasp/release, cameras, scoring, video + trajectory recording |
 | `__init__.py` | re-exports the public API (`TennisPickSim`, servo names, scene constants) |
-| `scene.xml` | table + fixed-base arm + box + balls + top/side cameras + 5 cm grid |
+| `scene.xml` | table + fixed-base arm + box + balls + top/side cameras (plain table, no perception aids) |
 | `so101_model/` | official TheRobotStudio SO-101 MJCF (`SOURCE.json` pins the commit) + `MODIFICATIONS.md`; the ~19 MB STL meshes are **not** in git — fetch with `fetch_assets.py` |
 | `calibration.json`, `calibration_hover.json` | radius → joint-angle lookup tables (grasp / hover height) embedded in the agent prompt |
 | `tuning/` | offline probes & sweeps that derived the grasp placement and servo settings; `tune_grasp_search.py` = reference policy; `make_review.py` = success/failure review page |
