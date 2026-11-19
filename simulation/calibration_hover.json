@@ -1,0 +1,50 @@
+[
+  {
+    "radius": 0.12,
+    "shoulder_lift": -57.0,
+    "elbow_flex": 41.5,
+    "wrist_flex": 110.0
+  },
+  {
+    "radius": 0.14,
+    "shoulder_lift": -56.0,
+    "elbow_flex": 38.0,
+    "wrist_flex": 107.0
+  },
+  {
+    "radius": 0.16,
+    "shoulder_lift": -40.0,
+    "elbow_flex": 30.5,
+    "wrist_flex": 103.0
+  },
+  {
+    "radius": 0.18,
+    "shoulder_lift": -30.0,
+    "elbow_flex": 23.5,
+    "wrist_flex": 100.0
+  },
+  {
+    "radius": 0.2,
+    "shoulder_lift": -32.5,
+    "elbow_flex": 25.0,
+    "wrist_flex": 92.0
+  },
+  {
+    "radius": 0.22,
+    "shoulder_lift": -9.0,
+    "elbow_flex": 4.5,
+    "wrist_flex": 99.0
+  },
+  {
+    "radius": 0.24,
+    "shoulder_lift": 3.0,
+    "elbow_flex": -9.5,
+    "wrist_flex": 102.0
+  },
+  {
+    "radius": 0.26,
+    "shoulder_lift": 2.5,
+    "elbow_flex": -9.5,
+    "wrist_flex": 95.0
+  }
+]

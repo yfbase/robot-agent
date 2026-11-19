@@ -17,3 +17,15 @@ dist/
 
 # ZCode session metadata
 .zcode/
+
+# Generated experiment records (bulky: mp4/npz/jpg/messages). Regenerate with
+# examples/tennis_pick/run_experiment.py, simulation/replay.py,
+# simulation/tuning/make_review.py. Kept on disk for review; use `git add -f`
+# to version a specific episode.
+simulation/experiments/
+
+# Offline probe renders (regenerate via simulation/tuning/*.py).
+simulation/tuning/renders/
+# Official SO-101 STL meshes (~19 MB): fetched on demand, pinned by SOURCE.json.
+# Run: uv run python simulation/so101_model/fetch_assets.py
+simulation/so101_model/assets/

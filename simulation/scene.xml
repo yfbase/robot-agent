@@ -1,0 +1,85 @@
+<mujoco model="tennis_pick">
+  <!-- SO-101 arm (official TheRobotStudio model, see so101_model/SOURCE.json).
+       Its base body has no joint, so the arm chassis is rigidly fixed to the
+       world at the origin, which is exactly the table-top surface (z = 0). -->
+  <include file="so101_model/so101_new_calib.xml" />
+
+  <!-- Mesh paths resolve relative to THIS file's directory, so point meshdir
+       at the arm model's assets folder (overrides the included compiler). -->
+  <compiler angle="radian" meshdir="so101_model/assets" />
+
+  <size memory="200M" />
+  <option timestep="0.002" integrator="implicitfast" />
+
+  <visual>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1" />
+    <global azimuth="160" elevation="-20" />
+    <quality shadowsize="4096" />
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.45 0.6 0.75" rgb2="0.1 0.15 0.2" width="512" height="3072" />
+    <texture type="2d" name="floor_tex" builtin="checker" rgb1="0.25 0.28 0.32" rgb2="0.18 0.2 0.24" mark="edge" markrgb="0.4 0.4 0.4" width="300" height="300" />
+    <material name="floor_mat" texture="floor_tex" texuniform="true" texrepeat="4 4" reflectance="0.1" />
+    <texture type="2d" name="wood_grid" builtin="checker" rgb1="0.72 0.55 0.35" rgb2="0.62 0.46 0.28" mark="edge" markrgb="0.5 0.38 0.22" width="200" height="200" />
+    <material name="wood_mat" texture="wood_grid" texuniform="true" texrepeat="16 16" reflectance="0.05" />
+    <material name="box_mat" rgba="0.25 0.45 0.85 1" reflectance="0.05" />
+    <material name="tennis_mat" rgba="0.83 0.9 0.15 1" reflectance="0.02" />
+  </asset>
+
+  <worldbody>
+    <light pos="0.25 0 1.6" dir="0 0 -1" directional="true" diffuse="0.7 0.7 0.7" />
+    <light pos="0.9 -0.9 1.0" dir="-0.4 0.4 -0.8" diffuse="0.35 0.35 0.35" />
+
+    <geom name="floor" type="plane" pos="0 0 -0.4" size="2.5 2.5 0.05" material="floor_mat" />
+
+    <!-- Table: top surface is exactly z = 0. The arm base sits on it at the origin. -->
+    <body name="table">
+      <geom name="tabletop" type="box" pos="0.25 0 -0.03" size="0.40 0.40 0.03" material="wood_mat" friction="0.8 0.005 0.0001" />
+      <geom name="leg_fl" type="box" pos="-0.10 -0.35 -0.215" size="0.03 0.03 0.185" rgba="0.35 0.3 0.25 1" />
+      <geom name="leg_fr" type="box" pos="-0.10 0.35 -0.215" size="0.03 0.03 0.185" rgba="0.35 0.3 0.25 1" />
+      <geom name="leg_bl" type="box" pos="0.60 -0.35 -0.215" size="0.03 0.03 0.185" rgba="0.35 0.3 0.25 1" />
+      <geom name="leg_br" type="box" pos="0.60 0.35 -0.215" size="0.03 0.03 0.185" rgba="0.35 0.3 0.25 1" />
+    </body>
+
+    <!-- Open-top collection box. Inner cavity 0.12 x 0.12 m, walls 0.045 m
+         tall (low enough that the vertical-gripper workspace can drop a ball
+         over the wall). -->
+    <body name="collection_box" pos="0.13 0.16 0">
+      <geom name="box_bottom" type="box" pos="0 0 0.004" size="0.068 0.068 0.004" material="box_mat" friction="0.9 0.005 0.0001" />
+      <geom name="box_wall_px" type="box" pos="0.064 0 0.0225" size="0.004 0.068 0.0225" material="box_mat" />
+      <geom name="box_wall_nx" type="box" pos="-0.064 0 0.0225" size="0.004 0.068 0.0225" material="box_mat" />
+      <geom name="box_wall_py" type="box" pos="0 0.064 0.0225" size="0.068 0.004 0.0225" material="box_mat" />
+      <geom name="box_wall_ny" type="box" pos="0 -0.064 0.0225" size="0.068 0.004 0.0225" material="box_mat" />
+    </body>
+
+    <!-- Tennis balls (radius 0.03 m, slightly under regulation size so the
+         SO-101 gripper can enclose them). Up to 3; unused ones are parked
+         out of sight on the floor and held by an equality weld. -->
+    <body name="tennis_ball_0" pos="0.25 0 0.06">
+      <freejoint name="tennis_ball_0_free" />
+      <geom name="tennis_ball_0" type="sphere" size="0.02" mass="0.057" material="tennis_mat" friction="1.2 0.05 0.01" solref="0.004 1" solimp="0.95 0.99 0.001 0.5 2" />
+    </body>
+    <body name="tennis_ball_1" pos="-1.0 0 -0.35">
+      <freejoint name="tennis_ball_1_free" />
+      <geom name="tennis_ball_1" type="sphere" size="0.02" mass="0.057" material="tennis_mat" friction="1.2 0.05 0.01" solref="0.004 1" solimp="0.95 0.99 0.001 0.5 2" />
+    </body>
+    <body name="tennis_ball_2" pos="-1.0 0.2 -0.35">
+      <freejoint name="tennis_ball_2_free" />
+      <geom name="tennis_ball_2" type="sphere" size="0.02" mass="0.057" material="tennis_mat" friction="1.2 0.05 0.01" solref="0.004 1" solimp="0.95 0.99 0.001 0.5 2" />
+    </body>
+
+    <!-- Overhead camera: image up = world +x (away from the arm base),
+         image right = world -y. Covers the whole work area. -->
+    <camera name="top_view" pos="0.24 0.02 0.95" xyaxes="0 -1 0 1 0 0" fovy="40" />
+    <!-- Side camera: looks along +y from the -y side of the table.
+         Image right = world +x, image up = world +z. -->
+    <camera name="side_view" pos="0.24 -0.85 0.28" xyaxes="1 0 0 0 0 1" fovy="40" />
+  </worldbody>
+
+  <equality>
+    <weld name="park_ball_0" body1="tennis_ball_0" body2="world" active="false" />
+    <weld name="park_ball_1" body1="tennis_ball_1" body2="world" active="false" />
+    <weld name="park_ball_2" body1="tennis_ball_2" body2="world" active="false" />
+  </equality>
+</mujoco>

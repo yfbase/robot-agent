@@ -1,0 +1,58 @@
+[
+  {
+    "radius": 0.12,
+    "shoulder_lift": -74.0,
+    "elbow_flex": 67.5,
+    "wrist_flex": 97.0,
+    "place_err": 0.0002
+  },
+  {
+    "radius": 0.14,
+    "shoulder_lift": -52.0,
+    "elbow_flex": 60.0,
+    "wrist_flex": 86.0,
+    "place_err": 0.0001
+  },
+  {
+    "radius": 0.16,
+    "shoulder_lift": -42.0,
+    "elbow_flex": 54.5,
+    "wrist_flex": 80.0,
+    "place_err": 0.0003
+  },
+  {
+    "radius": 0.18,
+    "shoulder_lift": -28.5,
+    "elbow_flex": 45.5,
+    "wrist_flex": 76.5,
+    "place_err": 0.0001
+  },
+  {
+    "radius": 0.2,
+    "shoulder_lift": -29.0,
+    "elbow_flex": 45.5,
+    "wrist_flex": 69.5,
+    "place_err": 0.0002
+  },
+  {
+    "radius": 0.22,
+    "shoulder_lift": -16.0,
+    "elbow_flex": 34.0,
+    "wrist_flex": 70.0,
+    "place_err": 0.0005
+  },
+  {
+    "radius": 0.24,
+    "shoulder_lift": 0.0,
+    "elbow_flex": 17.0,
+    "wrist_flex": 75.5,
+    "place_err": 0.0001
+  },
+  {
+    "radius": 0.26,
+    "shoulder_lift": -1.0,
+    "elbow_flex": 18.0,
+    "wrist_flex": 67.5,
+    "place_err": 0.0002
+  }
+]
