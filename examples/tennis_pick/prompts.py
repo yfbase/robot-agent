@@ -62,24 +62,40 @@ includes the 0.027 m offset toward the base and the 0.016 m height offset,
 so applying it puts the jaws correctly around a ball at that radius.
 
 RECIPE (per ball; follow exactly unless experience notes improve it)
-1. get_top_view + get_side_view. Estimate the ball's world (x, y) from the
-   top view; radius r = sqrt(x^2+y^2); pan = degrees(atan2(-y, x)).
-2. release()  (open the jaws at the start pose).
-3. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0).
-4. set_servo_angles(shoulder_pan=pan, <grasp row for r>, wrist_roll=0).
-   Optionally re-check get_side_view: jaws should straddle the ball.
-5. grasp(). The returned gripper opening should be part-way (~25-40 mm).
-   If ~0, the jaws missed: release(), re-estimate (x,y), repeat 3-5.
-6. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0)  (lift).
-7. set_servo_angles(shoulder_pan=-51, <hover row for radius 0.21>, wrist_roll=0).
-8. release(). Check a camera: the ball should be in the box.
-9. Repeat for the next ball. When all are in the box, stop calling tools and
-   reply with a one-line summary starting with DONE.
+1. PARK TO SEE: set_servo_angles(shoulder_pan=90, shoulder_lift=-40,
+   elbow_flex=35, wrist_flex=95, wrist_roll=0) so the arm is out of the top
+   view's centre, then get_top_view + get_side_view. (A2: never localise a
+   ball while the arm occludes it.)
+2. CALIBRATE SCALE (A1): in the top view measure the box INNER width in
+   pixels; it is 0.12 m, so scale = 0.12 / box_inner_pixels (m/px). Measure
+   the ball centre's pixel offset from the base centre; convert with scale
+   (image up = +x, image right = -y) to get (x, y). radius r = sqrt(x^2+y^2);
+   pan = degrees(atan2(-y, x)). Cross-check r against the ball's known
+   diameter (0.04 m) in pixels.
+3. release()  (open the jaws).
+4. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0).
+5. set_servo_angles(shoulder_pan=pan, <grasp row for r>, wrist_roll=0).
+6. CONFIRM STRADDLE (A4): get_side_view. The two jaws must be on opposite
+   sides of the ball at ball height, gripper above the table. If not aligned,
+   adjust shoulder_pan / shoulder_lift in small steps and re-check the side
+   view. Only grasp once the side view confirms the straddle.
+7. grasp(). Read the returned gripper opening:
+   - 20-35 mm = holding the ball -> proceed to 8.
+   - <15 mm = jaws empty (MISS). Do NOT re-grasp at the same angles.
+     release(), PARK TO SEE (step 1), re-image and RE-LOCALISE the ball
+     (A3: a miss may have nudged it), then repeat 4-7 with the new (x, y).
+8. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0)  (lift).
+9. set_servo_angles(shoulder_pan=-51, <hover row for radius 0.21>, wrist_roll=0).
+10. release(). Check BOTH cameras: the ball should be inside the box. If not,
+    re-localise (step 1-2) and retry from 4.
+11. Repeat for the next ball. When all are in the box, stop calling tools and
+    reply with a one-line summary starting with DONE.
 
 RULES
 - Never claim a ball is in the box without checking a camera.
-- If a grasp fails twice, re-position from fresh images; do not repeat the
-  same angles blindly.
+- Never grasp without a side-view straddle confirmation (A4).
+- On a miss (<15 mm) always re-localise from a parked, unobstructed top view
+  before retrying (A3); never repeat the same angles blindly.
 - Consult the EXPERIENCE NOTES below (your own earlier reflections).
 """
 

@@ -112,9 +112,10 @@ def make_tools(sim: TennisPickSim, image_dir: Path | None = None, log: Callable 
     async def grasp() -> dict:
         """Close the gripper (pre-tuned setpoint) and hold.
 
-        Call it only when the open jaws straddle a ball at ball height.
-        Returns the achieved servo angles; the gripper opening tells you how
-        far the jaws closed (a ball between them stops the jaws part-way).
+        Call it only when the open jaws straddle a ball at ball height
+        (confirm with get_side_view first). Returns the achieved servo angles;
+        the gripper opening tells you the outcome: 20-35 mm = holding a ball,
+        <15 mm = jaws empty (miss) -> re-localise before retrying.
         """
         achieved = sim.grasp()
         record("grasp", {}, str(achieved))

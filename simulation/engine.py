@@ -226,7 +226,9 @@ class TennisPickSim:
         Compliant close: the command ramps toward fully closed at a limited
         speed with a soft servo gain; once the jaw stalls on an object we
         stop ramping and hold a small squeeze (2 mm) past the stall point.
-        Driving all the way to fully closed would crush the ball out.
+        Driving all the way to fully closed would crush the ball out. If the
+        jaws reach <12 mm with nothing between (a miss), stop early and hold
+        without extra squeeze (B7) so a nearby ball is not swept further.
         """
         gid = self._ctrladr["gripper"]
         qadr = self._qposadr["gripper"]
@@ -240,13 +242,22 @@ class TennisPickSim:
             self._step()
             q = float(self.data.qpos[qadr])
             v = float(abs(self.data.qvel[self.model.joint("gripper").dofadr[0]]))
+            if q < 0.012:
+                # B7: jaws nearly closed with nothing between them = a miss.
+                # Stop early instead of driving to fully closed, so a ball just
+                # outside the jaws is not swept further by the closing stroke.
+                break
             if q < 0.045 and v < 0.002:
                 stalled_since = self.data.time if stalled_since is None else stalled_since
                 if self.data.time - stalled_since >= 0.08:
                     break
             else:
                 stalled_since = None
-        self.data.ctrl[gid] = max(GRIPPER_CLOSE_M, float(self.data.qpos[qadr]) - 0.008)
+        q_now = float(self.data.qpos[qadr])
+        if q_now >= 0.015:
+            self.data.ctrl[gid] = max(GRIPPER_CLOSE_M, q_now - 0.008)
+        else:
+            self.data.ctrl[gid] = q_now  # miss: hold here, no extra squeeze
         self._settle()
         self._attach_balls_in_jaws()
         return self.servo_angles_deg()

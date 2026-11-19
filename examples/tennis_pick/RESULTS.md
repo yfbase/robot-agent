@@ -35,6 +35,7 @@ Progression of prompt / infrastructure improvements. Early runs failed for
 | llm_stable | + async tools (main-thread render) | 1/3 | no crashes; 2 episodes lost the ball after a missed grasp nudged it away |
 | llm_gentle | + 0.5 N gripper limit + wider FOV | aborted | exploratory; wider FOV shrank the grid and hurt coordinate reading, so FOV reverted to 40 |
 | llm_pure_vision | **perception aids removed** (plain table, neutral start pose) | 1/3 | pure-vision variant per user directive; no grid / no occlusion-avoiding pose |
+| llm_pure_v2 | + A1 scale self-calibration, A2 occlusion-free parking, A3 miss re-localisation, A4 side-view straddle gate, B7 early-stop on empty grasp | 1/3 | ep0 improved 57-tool-fail -> 19-tool-success; ep1/ep2 still fail because the model's recovery/park arm sweeps bat the ball off the table (not grasp force). Next: lift-then-pan parking |
 
 Aggregate over completed LLM episodes of the final configuration
 (debug1 + run9b + llm_final + llm_stable): **4/8 = 50%**, with zero simulator
