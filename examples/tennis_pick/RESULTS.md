@@ -70,9 +70,9 @@ policy remains 100% on all seeds tested.
 
 | episode | tools | sim s | wall s | LLM+overhead s |
 | --- | --- | --- | --- | --- |
-| ep0 | 31 | ~see trajectory | 262.9 | wall - sim |
-| ep1 | 21 | ~see trajectory | 109.7 | wall - sim |
-| ep2 | 28 | ~see trajectory | 210.1 | wall - sim |
+| ep0 | 31 | 11.9 | 262.9 | 251.0 |
+| ep1 | 21 | 10.1 | 109.7 | 99.6 |
+| ep2 | 28 | 10.3 | 210.1 | 199.8 |
 
 Wall time is dominated by LLM requests (each re-sends the conversation); MuJoCo
 sim seconds are a small fraction. Latency optimizations: image-history pruning
