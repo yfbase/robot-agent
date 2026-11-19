@@ -71,6 +71,24 @@ MUJOCO_GL=egl uv run python simulation/replay.py \
 
 `MUJOCO_GL=egl` selects offscreen rendering (works headless via Mesa).
 
+Videos are NOT recorded live by default (live dual-camera rendering is a major
+per-tool cost). Generate them on demand from the saved trajectory:
+`MUJOCO_GL=egl uv run python simulation/replay.py simulation/experiments/<run>/episode_XX`.
+Pass `--video` to run_experiment.py to record live MP4s during the run instead.
+
+## Runtime / latency
+
+Per-episode wall time is dominated by LLM requests (each re-sends the conversation
+including camera frames), not by MuJoCo. Optimizations applied:
+* `model_pruning.ImagePruningModel` keeps only the 2 most recent camera frames in
+  the request history (older frames become text placeholders), cutting per-request
+  payload/latency that otherwise grows with episode length.
+* Live video recording off by default (`--video` to enable); videos via replay.py.
+* Tighter servo settle (max 2.0 s, calm window 0.05 s) to cut per-tool sim+render time.
+* `evaluation.json` records `wall_seconds`; `tool_calls.jsonl` records per-call `wall`
+  timestamps so request-vs-sim time can be attributed.
+Typical: successful episode ~a few minutes; failed episodes longer (more retries).
+
 ## Experiment records (for review / reproduction)
 
 Each run creates `simulation/experiments/<run_id>/`:

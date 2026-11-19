@@ -62,10 +62,12 @@ includes the 0.027 m offset toward the base and the 0.016 m height offset,
 so applying it puts the jaws correctly around a ball at that radius.
 
 RECIPE (per ball; follow exactly unless experience notes improve it)
-1. PARK TO SEE: set_servo_angles(shoulder_pan=90, shoulder_lift=-40,
+1. PARK TO SEE (lift-then-pan): FIRST raise the gripper to hover height
+   (set_servo_angles with the CURRENT pan + the hover row for the current
+   radius), THEN set_servo_angles(shoulder_pan=90, shoulder_lift=-40,
    elbow_flex=35, wrist_flex=95, wrist_roll=0) so the arm is out of the top
    view's centre, then get_top_view + get_side_view. (A2: never localise a
-   ball while the arm occludes it.)
+   ball while the arm occludes it; never pan at ball height.)
 2. CALIBRATE SCALE (A1): in the top view measure the box INNER width in
    pixels; it is 0.12 m, so scale = 0.12 / box_inner_pixels (m/px). Measure
    the ball centre's pixel offset from the base centre; convert with scale
@@ -82,8 +84,10 @@ RECIPE (per ball; follow exactly unless experience notes improve it)
 7. grasp(). Read the returned gripper opening:
    - 20-35 mm = holding the ball -> proceed to 8.
    - <15 mm = jaws empty (MISS). Do NOT re-grasp at the same angles.
-     release(), PARK TO SEE (step 1), re-image and RE-LOCALISE the ball
-     (A3: a miss may have nudged it), then repeat 4-7 with the new (x, y).
+     release(), raise to hover height at the current pan, THEN PARK TO SEE
+     (step 1), re-image and RE-LOCALISE the ball (A3: a miss may have nudged
+     it), then repeat 4-7 with the new (x, y). Never sweep the arm sideways
+     at ball height during recovery.
 8. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0)  (lift).
 9. set_servo_angles(shoulder_pan=-51, <hover row for radius 0.21>, wrist_roll=0).
 10. release(). Check BOTH cameras: the ball should be inside the box. If not,
@@ -94,6 +98,8 @@ RECIPE (per ball; follow exactly unless experience notes improve it)
 RULES
 - Never claim a ball is in the box without checking a camera.
 - Never grasp without a side-view straddle confirmation (A4).
+- LIFT-THEN-PAN: never change shoulder_pan while the gripper is below hover
+  height; always raise first so the arm never sweeps across the ball.
 - On a miss (<15 mm) always re-localise from a parked, unobstructed top view
   before retrying (A3); never repeat the same angles blindly.
 - Consult the EXPERIENCE NOTES below (your own earlier reflections).

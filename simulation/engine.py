@@ -386,7 +386,7 @@ class TennisPickSim:
 
     # ------------------------------------------------------------- stepping
 
-    def _settle(self, max_time: float = 3.0, min_time: float = 0.3) -> None:
+    def _settle(self, max_time: float = 2.0, min_time: float = 0.2) -> None:
         """Step physics until the arm and balls are calm (or max_time hits)."""
         start = self.data.time
         calm_since: float | None = None
@@ -408,7 +408,7 @@ class TennisPickSim:
             calm = arm_speed < 0.03 and grip_speed < 0.005 and ball_speed < 0.03
             if calm and elapsed >= min_time:
                 calm_since = self.data.time if calm_since is None else calm_since
-                if self.data.time - calm_since >= 0.1:
+                if self.data.time - calm_since >= 0.05:
                     break
             else:
                 calm_since = None

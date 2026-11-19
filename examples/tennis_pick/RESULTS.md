@@ -36,6 +36,7 @@ Progression of prompt / infrastructure improvements. Early runs failed for
 | llm_gentle | + 0.5 N gripper limit + wider FOV | aborted | exploratory; wider FOV shrank the grid and hurt coordinate reading, so FOV reverted to 40 |
 | llm_pure_vision | **perception aids removed** (plain table, neutral start pose) | 1/3 | pure-vision variant per user directive; no grid / no occlusion-avoiding pose |
 | llm_pure_v2 | + A1 scale self-calibration, A2 occlusion-free parking, A3 miss re-localisation, A4 side-view straddle gate, B7 early-stop on empty grasp | 1/3 | ep0 improved 57-tool-fail -> 19-tool-success; ep1/ep2 still fail because the model's recovery/park arm sweeps bat the ball off the table (not grasp force). Next: lift-then-pan parking |
+| llm_pure_v3_fast | + lift-then-pan (never sweep at ball height) + image-history pruning + live-video off + tighter settle | **3/3** | wall 263/110/210 s (avg ~194 s) vs v2 307/1649/1034 s; lift-then-pan removed the recovery-sweep ball-loss failure |
 
 Aggregate over completed LLM episodes of the final configuration
 (debug1 + run9b + llm_final + llm_stable): **4/8 = 50%**, with zero simulator
@@ -64,6 +65,20 @@ policy remains 100% on all seeds tested.
    in worker threads); `<size memory="200M">` (default collision arena aborts
    with `mj_stackAlloc` overflow on some layouts); adequate request budget
    (40) so retries can complete.
+
+## Per-episode wall time (llm_pure_v3_fast)
+
+| episode | tools | sim s | wall s | LLM+overhead s |
+| --- | --- | --- | --- | --- |
+| ep0 | 31 | ~see trajectory | 262.9 | wall - sim |
+| ep1 | 21 | ~see trajectory | 109.7 | wall - sim |
+| ep2 | 28 | ~see trajectory | 210.1 | wall - sim |
+
+Wall time is dominated by LLM requests (each re-sends the conversation); MuJoCo
+sim seconds are a small fraction. Latency optimizations: image-history pruning
+(keep 2 newest frames), live video off by default (replay on demand), tighter
+servo settle. `evaluation.json:wall_seconds` and `tool_calls.jsonl:wall` enable
+attribution. Earlier aided/pure runs: success ~310-320 s, failures 640-1650 s.
 
 ## Honest limitations
 

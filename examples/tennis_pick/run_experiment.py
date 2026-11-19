@@ -87,6 +87,12 @@ def main() -> None:
     ap.add_argument("--max-requests", type=int, default=40)
     ap.add_argument("--max-tool-calls", type=int, default=120)
     ap.add_argument("--scripted", action="store_true", help="no LLM; reference policy")
+    ap.add_argument(
+        "--video",
+        action="store_true",
+        help="record live dual-camera MP4 during the run (slower); otherwise "
+        "generate videos on demand from trajectory.npz via simulation/replay.py",
+    )
     ap.add_argument("--run-dir", type=str, default=None)
     ap.add_argument(
         "--experience-from",
@@ -133,13 +139,21 @@ def main() -> None:
         ep_seed = args.seed + ep
         ep_dir = run_dir / f"episode_{ep:02d}"
         ep_dir.mkdir(exist_ok=True)
-        sim = TennisPickSim(num_balls=args.balls, seed=ep_seed, record_video=True)
-        sim.start_video(ep_dir)
+        sim = TennisPickSim(num_balls=args.balls, seed=ep_seed, record_video=args.video)
+        if args.video:
+            sim.start_video(ep_dir)
+        ep_wall_start = time.time()
         tool_log = []
 
         def log(name, a, summary_str, _sim=sim, _log=tool_log):
             _log.append(
-                {"t": round(_sim.data.time, 3), "tool": name, "args": a, "result": summary_str}
+                {
+                    "t": round(_sim.data.time, 3),
+                    "wall": round(time.time(), 2),
+                    "tool": name,
+                    "args": a,
+                    "result": summary_str,
+                }
             )
 
         tools = make_tools(sim, ep_dir / "images", log)
@@ -158,9 +172,24 @@ def main() -> None:
         if args.scripted:
             final_text = scripted_episode(sim)
         else:
-            from robot_agent import RobotAgent
+            from pydantic_ai.models.openai import OpenAIResponsesModel
+            from pydantic_ai.providers.openai import OpenAIProvider
 
-            agent = RobotAgent(instructions=system_prompt(), tools=tools)
+            from robot_agent import RobotAgent
+            from robot_agent.config import Settings
+
+            from model_pruning import ImagePruningModel
+
+            settings = Settings()
+            base_model = OpenAIResponsesModel(
+                settings.model,
+                provider=OpenAIProvider(base_url=settings.base_url, api_key=settings.api_key),
+            )
+            agent = RobotAgent(
+                model=ImagePruningModel(base_model, keep_images=2),
+                instructions=system_prompt(),
+                tools=tools,
+            )
             limits = UsageLimits(
                 request_limit=args.max_requests, tool_calls_limit=args.max_tool_calls
             )
@@ -179,7 +208,8 @@ def main() -> None:
                 error = f"{type(exc).__name__}: {exc}"
                 print("episode error:", error, flush=True)
 
-        sim.finish_video()
+        if args.video:
+            sim.finish_video()
         sim.save_trajectory(ep_dir / "trajectory.npz")
         placed = int(sum(sim.ball_in_box(i) for i in range(args.balls)))
         evaluation = {
@@ -188,6 +218,7 @@ def main() -> None:
             "placed": placed,
             "total": args.balls,
             "success": placed == args.balls,
+            "wall_seconds": round(time.time() - ep_wall_start, 1),
             "final_state": sim.state_snapshot(),
             "agent_final": final_text,
             "error": error,
