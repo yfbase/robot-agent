@@ -72,3 +72,32 @@ class ImagePruningModel(WrapperModel):
                     new_parts.append(part)
             pruned.append(ModelRequest(parts=new_parts))
         return pruned
+
+class TransientRetryModel(WrapperModel):
+    """Retry transient gateway rejections (RPM throttle / thinking-passback /
+    5xx) with exponential backoff so a campaign is not killed by provider
+    instability. Non-transient errors propagate immediately."""
+
+    TRANSIENT_MARKERS = ("rpm", "thinking", "rate", "timeout", "temporarily", "overloaded")
+
+    def __init__(self, wrapped, attempts: int = 4):
+        super().__init__(wrapped)
+        self.attempts = attempts
+
+    async def request(self, messages, model_settings, model_request_parameters):
+        import anyio
+
+        last = None
+        for i in range(self.attempts):
+            try:
+                return await super().request(messages, model_settings, model_request_parameters)
+            except Exception as exc:
+                text = str(exc).lower()
+                transient = any(m in text for m in self.TRANSIENT_MARKERS) or any(
+                    f"status_code: {c}" in text for c in (429, 500, 502, 503, 504)
+                )
+                if not transient or i == self.attempts - 1:
+                    raise
+                last = exc
+                await anyio.sleep(5 * (2**i))
+        raise last  # pragma: no cover

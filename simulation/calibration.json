@@ -1,5 +1,17 @@
 [
   {
+    "radius": 0.08,
+    "shoulder_lift": -86.5,
+    "elbow_flex": 72.0,
+    "wrist_flex": 110.0
+  },
+  {
+    "radius": 0.1,
+    "shoulder_lift": -82.0,
+    "elbow_flex": 69.5,
+    "wrist_flex": 106.5
+  },
+  {
     "radius": 0.12,
     "shoulder_lift": -74.0,
     "elbow_flex": 67.5,

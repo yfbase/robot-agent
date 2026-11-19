@@ -37,6 +37,9 @@ Progression of prompt / infrastructure improvements. Early runs failed for
 | llm_pure_vision | **perception aids removed** (plain table, neutral start pose) | 1/3 | pure-vision variant per user directive; no grid / no occlusion-avoiding pose |
 | llm_pure_v2 | + A1 scale self-calibration, A2 occlusion-free parking, A3 miss re-localisation, A4 side-view straddle gate, B7 early-stop on empty grasp | 1/3 | ep0 improved 57-tool-fail -> 19-tool-success; ep1/ep2 still fail because the model's recovery/park arm sweeps bat the ball off the table (not grasp force). Next: lift-then-pan parking |
 | llm_pure_v3_fast | + lift-then-pan (never sweep at ball height) + image-history pruning + live-video off + tighter settle | **3/3** | wall 263/110/210 s (avg ~194 s) vs v2 307/1649/1034 s; lift-then-pan removed the recovery-sweep ball-loss failure |
+| llm_v4_10ep / v4b / v4c | minimal ~9-call recipe, runner pre-park, single top-view verify, parallel cameras, decisive straddle | 4/4 non-infra | gateway RPM/thinking transients killed some episodes; added TransientRetryModel |
+| llm_v5_10ep | + calibration rows 0.08/0.10 m, mandatory top-view re-localise on miss | 7/10 | failures: ball batted out of reach by pan-only calls at low height; wrist_flex>102 clamped made "hover" low |
+| llm_v6_10ep | + forbid pan-only calls (pair with hover/park row), forbid wrist_flex>102, output retries=3 | **8/10 = 80%** | success-only avg 121 s / 11.8 calls; meets >=80% target |
 
 Aggregate over completed LLM episodes of the final configuration
 (debug1 + run9b + llm_final + llm_stable): **4/8 = 50%**, with zero simulator
@@ -79,6 +82,28 @@ sim seconds are a small fraction. Latency optimizations: image-history pruning
 (keep 2 newest frames), live video off by default (replay on demand), tighter
 servo settle. `evaluation.json:wall_seconds` and `tool_calls.jsonl:wall` enable
 attribution. Earlier aided/pure runs: success ~310-320 s, failures 640-1650 s.
+
+## Final configuration (llm_v6_10ep): 8/10 = 80%, success-only avg 121 s
+
+Orchestration/prompt only (no new tools, no ground-truth): runner pre-parks the
+arm so initial frames are unobstructed; ~9-call minimal recipe per ball; single
+top-view verify; parallel camera calls; decisive straddle gate; mandatory
+top-view re-localisation on miss; lift-then-pan enforced by forbidding pan-only
+calls; wrist_flex capped at 102 in prompt; calibration extended to 0.08 m;
+image-history pruning + transient-gateway retry + output retries.
+
+| episode | success | tools | wall s |
+| --- | --- | --- | --- |
+| 00 | yes | 9 | 67.1 |
+| 01 | yes | 9 | 83.4 |
+| 02 | yes | 11 | 83.2 |
+| 03 | no | 10 | 90.2 |
+| 04 | yes | 18 | 312.0 |
+| 05 | yes | 9 | 58.5 |
+| 06 | yes | 12 | 100.9 |
+| 07 | yes | 9 | 73.6 |
+| 08 | yes | 17 | 191.5 |
+| 09 | no | 56 | 631.0 |
 
 ## Honest limitations
 

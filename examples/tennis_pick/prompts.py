@@ -61,47 +61,51 @@ Interpolate between rows for intermediate radii. The grasp row already
 includes the 0.027 m offset toward the base and the 0.016 m height offset,
 so applying it puts the jaws correctly around a ball at that radius.
 
-RECIPE (per ball; follow exactly unless experience notes improve it)
-1. PARK TO SEE (lift-then-pan): FIRST raise the gripper to hover height
-   (set_servo_angles with the CURRENT pan + the hover row for the current
-   radius), THEN set_servo_angles(shoulder_pan=90, shoulder_lift=-40,
-   elbow_flex=35, wrist_flex=95, wrist_roll=0) so the arm is out of the top
-   view's centre, then get_top_view + get_side_view. (A2: never localise a
-   ball while the arm occludes it; never pan at ball height.)
-2. CALIBRATE SCALE (A1): in the top view measure the box INNER width in
-   pixels; it is 0.12 m, so scale = 0.12 / box_inner_pixels (m/px). Measure
-   the ball centre's pixel offset from the base centre; convert with scale
-   (image up = +x, image right = -y) to get (x, y). radius r = sqrt(x^2+y^2);
-   pan = degrees(atan2(-y, x)). Cross-check r against the ball's known
-   diameter (0.04 m) in pixels.
-3. release()  (open the jaws).
-4. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0).
-5. set_servo_angles(shoulder_pan=pan, <grasp row for r>, wrist_roll=0).
-6. CONFIRM STRADDLE (A4): get_side_view. The two jaws must be on opposite
-   sides of the ball at ball height, gripper above the table. If not aligned,
-   adjust shoulder_pan / shoulder_lift in small steps and re-check the side
-   view. Only grasp once the side view confirms the straddle.
-7. grasp(). Read the returned gripper opening:
-   - 20-35 mm = holding the ball -> proceed to 8.
-   - <15 mm = jaws empty (MISS). Do NOT re-grasp at the same angles.
-     release(), raise to hover height at the current pan, THEN PARK TO SEE
-     (step 1), re-image and RE-LOCALISE the ball (A3: a miss may have nudged
-     it), then repeat 4-7 with the new (x, y). Never sweep the arm sideways
-     at ball height during recovery.
-8. set_servo_angles(shoulder_pan=pan, <hover row for r>, wrist_roll=0)  (lift).
-9. set_servo_angles(shoulder_pan=-51, <hover row for radius 0.21>, wrist_roll=0).
-10. release(). Check BOTH cameras: the ball should be inside the box. If not,
-    re-localise (step 1-2) and retry from 4.
-11. Repeat for the next ball. When all are in the box, stop calling tools and
-    reply with a one-line summary starting with DONE.
+RECIPE (minimal call budget; the arm starts ALREADY PARKED out of the top view,
+and the two attached initial images are unobstructed — do NOT re-park or read
+servo angles at the start)
+1. CALIBRATE ONCE (A1): from the initial top view measure the box INNER width
+   in pixels (=0.12 m) -> scale m/px. Reuse this scale for the whole episode.
+   For each ball measure its centre pixel offset from the base centre ->
+   (x, y) (image up=+x, image right=-y); r=sqrt(x^2+y^2); pan=deg(atan2(-y,x)).
+2. release()                      (open jaws; 1 call)
+3. set_servo_angles(pan, <hover row r>, roll=0)   (aim at hover height; 1 call)
+4. set_servo_angles(pan, <grasp row r>, roll=0)   (descend at fixed pan; 1 call)
+5. get_side_view()                (straddle check; 1 call). DECISIVE rule:
+   if the ball sits between the two jaws with the jaw tips below the ball's
+   top, grasp NOW. Do not abort / re-park / re-release out of doubt; only
+   adjust if the ball is clearly OUTSIDE the jaws or the gripper is far above.
+6. grasp()                        (1 call). opening 20-35 mm = holding -> step 7.
+   opening <15 mm = MISS: you MUST release(), then set_servo_angles(pan=current,
+   <hover row>) [full row], then set_servo_angles(pan=90, <park row>) [full
+   row], get_top_view and RE-MEASURE the ball (a miss nudges it, possibly to a
+   smaller radius). Do NOT tune from the side view after a miss, and never
+   send pan alone. Then goto 3 with the new (x, y). (A3)
+7. set_servo_angles(pan, <hover row r>, roll=0)   (lift; 1 call)
+8. set_servo_angles(-51, <hover row 0.21>, roll=0) (over box; 1 call)
+9. release()                      (1 call)
+10. get_top_view()                (verify ball inside box; 1 call). If not in
+    box, re-measure from this top view and goto 3 for that ball.
+11. Next ball: goto 2 (reuse scale). When all in box, reply DONE + one line.
+
+Call budget: ~9 tool calls per ball. When you need BOTH cameras, issue
+get_top_view and get_side_view in the SAME turn (parallel) to save a request.
+Never call get_servo_angles (angles are returned by every set/grasp/release).
 
 RULES
-- Never claim a ball is in the box without checking a camera.
-- Never grasp without a side-view straddle confirmation (A4).
-- LIFT-THEN-PAN: never change shoulder_pan while the gripper is below hover
-  height; always raise first so the arm never sweeps across the ball.
-- On a miss (<15 mm) always re-localise from a parked, unobstructed top view
-  before retrying (A3); never repeat the same angles blindly.
+- Never claim a ball is in the box without a top-view check.
+- LIFT-THEN-PAN: never change shoulder_pan below hover height; raise first.
+  NEVER send shoulder_pan alone: every pan change must include the hover-row
+  (or park-row) shoulder_lift/elbow_flex/wrist_flex in the SAME call, so the
+  arm is high before it swings. A pan-only call at low height bats the ball.
+- On a miss always re-localise from a parked TOP view; never blind re-grasp and
+  never tune from the side view after a miss.
+- The calibration tables cover radius 0.08-0.26 m; a nudged ball may sit below
+  0.12 m - use the 0.08/0.10 rows rather than giving up.
+- Use table angles VERBATIM. wrist_flex limit is 102 deg: never command >102
+  (it gets clamped and your "hover" ends up low, causing a low pan sweep).
+- Be decisive: follow the table angles; do not re-derive or second-guess a
+  confirmed straddle. Fewer, purposeful calls = faster.
 - Consult the EXPERIENCE NOTES below (your own earlier reflections).
 """
 
@@ -129,8 +133,10 @@ def task_message(experience: str, num_balls: int) -> str:
     notes = experience.strip() or "(empty — this is the first episode)"
     return (
         f"New task: {num_balls} tennis ball(s) on the table. Pick them all up "
-        f"and drop them into the blue box. Two camera images are attached "
-        f"(top view first, side view second).\n\n"
+        f"and drop them into the blue box. The arm is ALREADY PARKED out of the "
+        f"top view; two unobstructed camera images are attached (top first, "
+        f"side second). Calibrate scale once from the top view and reuse it. "
+        f"Follow the minimal recipe (~9 calls/ball).\n\n"
         f"EXPERIENCE NOTES from your earlier episodes:\n{notes}\n\n"
         f"Begin. When finished, reply with a line starting with DONE."
     )

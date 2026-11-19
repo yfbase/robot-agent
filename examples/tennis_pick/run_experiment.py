@@ -87,6 +87,7 @@ def main() -> None:
     ap.add_argument("--max-requests", type=int, default=40)
     ap.add_argument("--max-tool-calls", type=int, default=120)
     ap.add_argument("--scripted", action="store_true", help="no LLM; reference policy")
+    ap.add_argument("--no-prune", action="store_true", help="disable image-history pruning (debug)")
     ap.add_argument(
         "--video",
         action="store_true",
@@ -156,6 +157,12 @@ def main() -> None:
                 }
             )
 
+        # Orchestration: park the arm out of the top view BEFORE the initial
+        # frames so the model starts with an unobstructed view (saves it the
+        # park calls). Physical arm move via the existing sim API, not a tool.
+        sim.set_servo_angles(
+            {"shoulder_pan": 90, "shoulder_lift": -40, "elbow_flex": 35, "wrist_flex": 95, "wrist_roll": 0}
+        )
         tools = make_tools(sim, ep_dir / "images", log)
         initial = [
             BinaryContent(data=sim.capture_jpeg("top_view"), media_type="image/jpeg"),
@@ -178,18 +185,16 @@ def main() -> None:
             from robot_agent import RobotAgent
             from robot_agent.config import Settings
 
-            from model_pruning import ImagePruningModel
+            from model_pruning import ImagePruningModel, TransientRetryModel
 
             settings = Settings()
             base_model = OpenAIResponsesModel(
                 settings.model,
                 provider=OpenAIProvider(base_url=settings.base_url, api_key=settings.api_key),
             )
-            agent = RobotAgent(
-                model=ImagePruningModel(base_model, keep_images=2),
-                instructions=system_prompt(),
-                tools=tools,
-            )
+            inner = base_model if args.no_prune else ImagePruningModel(base_model, keep_images=2)
+            model = TransientRetryModel(inner)
+            agent = RobotAgent(model=model, instructions=system_prompt(), tools=tools, retries=3)
             limits = UsageLimits(
                 request_limit=args.max_requests, tool_calls_limit=args.max_tool_calls
             )
