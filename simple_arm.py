@@ -29,17 +29,19 @@
     arm.gripper(40)                                # 夹爪开度 0(闭)..100(开)
     arm.wait(Joint.ELBOW_FLEX | Joint.WRIST_FLEX)  # 等多轴各自到目标 ±tol
     arm.disable(Joint.ELBOW_FLEX | Joint.GRIPPER)  # 组合卸力
+    arm.reset()                                    # 复位：臂抬到高位、夹爪张开，先抬升后转向
     arm.close()                                    # 全部卸力 + 关串口
 
 Joint 为 Flag 枚举：enable/disable/wait 接受 `|` 组合，默认 Joint（全部六轴）；
 move/set_goal_raw/read_one 仅接受单个成员（is_single 判断）。
 
-命令行：python simple_arm.py [串口]   # 打印状态后执行 main() 中的测试动作
+命令行：python simple_arm.py [串口]   # 打印状态后执行复位（抬臂到高位、夹爪张开）
 """
 import os
 import sys
 import time
 from enum import Flag, IntEnum
+from typing import ClassVar
 
 import serial
 from serial.tools import list_ports
@@ -55,6 +57,8 @@ class Joint(Flag):
     WRIST_FLEX = 8
     WRIST_ROLL = 16
     GRIPPER = 32
+    
+    ALL = SHOULDER_PAN | SHOULDER_LIFT | ELBOW_FLEX | WRIST_FLEX | WRIST_ROLL | GRIPPER
 
     @property
     def mid(self):
@@ -66,6 +70,7 @@ class Joint(Flag):
         """是否恰好为单个成员（位值为 2 的幂即单个成员；组合或空为 False）。"""
         v = self.value
         return v != 0 and v & (v - 1) == 0
+    
 
 
 class Reg(IntEnum):
@@ -219,6 +224,18 @@ class SimpleArm:
     ARM_OUTPUT = 300        # 五个臂轴的输出上限
     GRIPPER_OUTPUT = 100    # 夹爪的输出上限（小、易顶死，给更小）
 
+    # 复位用的目标姿态（角度约定与 move() 相同：0° = 该轴 EEPROM 行程中点，
+    # 正角度使夹爪朝下俯）。初值取自仿真侧"高位停靠"姿态，已按真机实测调整；
+    # 复位时只动这里列出的轴，未列出的轴保持当前位。
+    HIGH_POSE: ClassVar[dict[Joint, float]] = {
+        Joint.SHOULDER_PAN: -40,   # 
+        # Joint.SHOULDER_LIFT: -40,
+        Joint.SHOULDER_LIFT: 80,   # BOTTOM TOP
+        # Joint.ELBOW_FLEX: 35,
+        Joint.ELBOW_FLEX: 0,    # ARM0        Joint.WRIST_FLEX: 180,
+        Joint.WRIST_ROLL: 90,   # 夹爪旋转
+    }
+
     def __init__(self, port=None):
         self.bus = StsBus(port)
         self.limits = {j: self._read_limits(j.mid) for j in Joint}
@@ -325,6 +342,26 @@ class SimpleArm:
                 return dict(settled=False, error_ticks=errors)
             time.sleep(.05)
 
+    def reset(self):
+        """复位：夹爪松开，臂摆到 HIGH_POSE 姿态。返回 wait() 的结果字典。
+
+        顺序刻意是"先抬升、后转向"：先动 HIGH_POSE 中除底座转向外的各轴并
+        等停稳，再转 shoulder_pan——避免臂在低位横扫碰到桌面物体。
+        HIGH_POSE 未列出的轴保持当前位。settled=False 表示超时仍未到位
+        （error_ticks 给出各轴偏差刻度）。"""
+        self.enable()                       # 预置当前位为目标再开扭矩，不会跳变
+        self.gripper(40)                   # 先松爪，抬升时不夹带物体
+        lift_joints = Joint(0)
+        for joint in self.HIGH_POSE:
+            if joint is not Joint.SHOULDER_PAN:
+                lift_joints |= joint
+        for joint in lift_joints:
+            self.move(joint, self.HIGH_POSE[joint])
+        self.wait(lift_joints, timeout=8.)  # 等抬升到位（大行程，给足时间）
+        if Joint.SHOULDER_PAN in self.HIGH_POSE:
+            self.move(Joint.SHOULDER_PAN, self.HIGH_POSE[Joint.SHOULDER_PAN])
+        return self.wait(timeout=8.)
+
     # ---------- 收尾 ----------
 
     def close(self):
@@ -349,10 +386,22 @@ def main():
             print(f"{row['id']} {joint.name}: raw={row['raw']} {value} 扭矩开={row['torque_on']} "
                   f"{row['temperature_C']}°C {row['voltage_V']}V 负载{row['load']} "
                   f"目标{row['goal_raw']} 限位{arm.limits[joint][0]}..{arm.limits[joint][1]}")
-        arm.enable(Joint.GRIPPER)
-        arm.gripper(20)
-        print(arm.wait(Joint.GRIPPER))     # {'settled': True/False, 'error_ticks': ...}
-        print(arm.read_one(Joint.GRIPPER)) # 顺带看停住时的负载和温度
+        # arm.enable(Joint.GRIPPER)
+        # print('复位：抬臂到高位、夹爪张开 ...')
+        # print(arm.reset())                  # {'settled': True/False, 'error_ticks': ...}
+        arm.move(Joint.SHOULDER_PAN, 0)  # 底盘左右  0 居中  > 0 右
+        arm.move(Joint.SHOULDER_LIFT, 0)  # 底盘上下  0 居中 > 0 下
+        arm.move(Joint.ELBOW_FLEX, 30)     # 关节 1 0 居中 > 0 下
+        arm.move(Joint.WRIST_FLEX, 0)     # 关节 2  0 居中  > 0 下
+        arm.move(Joint.WRIST_ROLL, 90)   # 固定 90
+        arm.gripper(40)
+        
+        for joint, row in arm.read_all().items():
+            value = f"{row['deg']:+.1f}°" if row['deg'] is not None else f"{row['gripper_pct']:.1f}%"
+            print(f"{row['id']} {joint.name}: {value} 负载{row['load']} {row['temperature_C']}°C")
+
+        while True:
+            time.sleep(1)  # 保持扭矩使臂停在高位；Ctrl+C 退出后卸力，可手动摆臂
 
 
 if __name__ == '__main__':
